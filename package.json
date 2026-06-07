@@ -1,9 +1,17 @@
 {
-    "name": "photo-email-app",
-    "version": "1.0.0",
-    "scripts": { "start": "node server.js" },
-    "dependencies": {
-          "@mentra/sdk": "^1.0.0",
-          "@sendgrid/mail": "^8.1.0"
-    }
+  "name": "photo-email-app",
+  "version": "1.0.0",
+  "description": "MentraOS photo to email app",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "@sendgrid/mail": "^8.1.0",
+    "ws": "^8.16.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
 }
