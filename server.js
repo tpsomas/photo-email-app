@@ -22,8 +22,7 @@ class PhotoEmailApp extends AppServer {
     console.log('New session:', sessionId, 'user:', userId);
 
     try {
-      await session.display.showTextWall('Photo to Email
-Press the camera button to capture');
+      await session.display.showTextWall('Photo to Email - Ready');
     } catch(e) { console.log('display err:', e.message); }
 
     try {
@@ -36,7 +35,7 @@ Press the camera button to capture');
     try {
       session.transcription?.on(async (data) => {
         const text = (data.text || '').toLowerCase();
-        if (text.includes('take photo') || text.includes('send photo') || text.includes('capture')) {
+        if (text.includes('take photo') || text.includes('capture')) {
           await handlePhotoCapture(session);
         }
       });
@@ -72,10 +71,10 @@ async function handlePhotoCapture(session) {
 
     await sgMail.send(emailMsg);
     console.log('Email sent to', RECIPIENT_EMAIL);
-    await session.display.showTextWall('Email sent to ' + RECIPIENT_EMAIL + '!');
+    await session.display.showTextWall('Email sent!');
 
     setTimeout(async () => {
-      try { await session.display.showTextWall('Ready - press button to take photo'); } catch(e) {}
+      try { await session.display.showTextWall('Ready - press button'); } catch(e) {}
     }, 3000);
 
   } catch (err) {
