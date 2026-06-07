@@ -1,0 +1,9 @@
+{
+    "name": "photo-email-app",
+    "version": "1.0.0",
+    "scripts": { "start": "node server.js" },
+    "dependencies": {
+          "@mentra/sdk": "^1.0.0",
+          "@sendgrid/mail": "^8.1.0"
+    }
+}
