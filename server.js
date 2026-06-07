@@ -7,7 +7,6 @@ const SENDER_EMAIL = process.env.SENDER_EMAIL || '';
 const RECIPIENT_EMAIL = 'dina.psoma@gmail.com';
 const PORT = parseInt(process.env.PORT || '3000');
 
-// Configure SendGrid
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || '');
 
 class PhotoEmailApp extends AppServer {
@@ -19,57 +18,41 @@ class PhotoEmailApp extends AppServer {
     });
   }
 
-  protected async onSession(session, sessionId, userId) {
+  async onSession(session, sessionId, userId) {
     console.log('New session:', sessionId, 'user:', userId);
 
-    // Show a button to take photo
-    await session.display.showTextWall('Photo to Email\nReady! Say "Take photo" or use the button.');
-
-    // Listen for button presses
-    session.events?.onButtonPress(async (event) => {
-      if (event.buttonId === 'take_photo' || event.buttonId === 'capture') {
-        await handlePhotoCapture(session);
-      }
-    });
-
-    // Also listen for voice command "take photo"
-    session.transcription?.on(async (data) => {
-      const text = data.text?.toLowerCase() || '';
-      if (text.includes('take photo') || text.includes('send photo') || text.includes('capture')) {
-        await handlePhotoCapture(session);
-      }
-    });
-
-    // Show button view
     try {
-      await session.display.showButtonView?.({
-        title: 'Photo to Email',
-        buttons: [{ id: 'take_photo', label: '📸 Take Photo & Send' }]
+      await session.display.showTextWall('Photo to Email
+Press the camera button to capture');
+    } catch(e) { console.log('display err:', e.message); }
+
+    try {
+      session.events?.onButtonPress(async (event) => {
+        console.log('Button pressed:', event.buttonId);
+        await handlePhotoCapture(session);
       });
-    } catch (e) {
-      console.log('Button view not available, using text wall');
-    }
+    } catch(e) { console.log('button err:', e.message); }
+
+    try {
+      session.transcription?.on(async (data) => {
+        const text = (data.text || '').toLowerCase();
+        if (text.includes('take photo') || text.includes('send photo') || text.includes('capture')) {
+          await handlePhotoCapture(session);
+        }
+      });
+    } catch(e) { console.log('transcript err:', e.message); }
   }
 }
 
 async function handlePhotoCapture(session) {
   try {
-    await session.display.showTextWall('📷 Taking photo...');
-    
+    await session.display.showTextWall('Taking photo...');
     const photo = await session.camera.takePhoto();
-    console.log('Photo taken, size:', photo?.buffer?.length || photo?.data?.length || 'unknown');
-    
-    await session.display.showTextWall('📧 Sending email...');
+    console.log('Photo taken');
+    await session.display.showTextWall('Sending email...');
 
-    // Get photo buffer
-    let photoBuffer;
-    if (photo?.buffer) {
-      photoBuffer = photo.buffer;
-    } else if (photo?.data) {
-      photoBuffer = photo.data;
-    } else if (Buffer.isBuffer(photo)) {
-      photoBuffer = photo;
-    }
+    let photoBuffer = photo?.buffer || photo?.data;
+    if (Buffer.isBuffer(photo)) photoBuffer = photo;
 
     const emailMsg = {
       from: SENDER_EMAIL,
@@ -81,7 +64,7 @@ async function handlePhotoCapture(session) {
     if (photoBuffer) {
       emailMsg.attachments = [{
         filename: 'photo_' + Date.now() + '.jpg',
-        content: photoBuffer.toString('base64'),
+        content: Buffer.from(photoBuffer).toString('base64'),
         type: 'image/jpeg',
         disposition: 'attachment'
       }];
@@ -89,19 +72,15 @@ async function handlePhotoCapture(session) {
 
     await sgMail.send(emailMsg);
     console.log('Email sent to', RECIPIENT_EMAIL);
-    
-    await session.display.showTextWall('✅ Photo sent to\n' + RECIPIENT_EMAIL);
-    
-    // Reset after 3 seconds
+    await session.display.showTextWall('Email sent to ' + RECIPIENT_EMAIL + '!');
+
     setTimeout(async () => {
-      try {
-        await session.display.showTextWall('📸 Ready\nSay "Take photo" to capture');
-      } catch(e) {}
+      try { await session.display.showTextWall('Ready - press button to take photo'); } catch(e) {}
     }, 3000);
-    
+
   } catch (err) {
-    console.error('Error in photo capture:', err);
-    await session.display.showTextWall('❌ Error: ' + err.message);
+    console.error('Error:', err.message);
+    try { await session.display.showTextWall('Error: ' + err.message); } catch(e) {}
   }
 }
 
@@ -109,6 +88,6 @@ const app = new PhotoEmailApp();
 app.start().then(() => {
   console.log('Photo Email App started on port', PORT);
 }).catch(err => {
-  console.error('Failed to start:', err);
+  console.error('Failed to start:', err.message);
   process.exit(1);
 });
